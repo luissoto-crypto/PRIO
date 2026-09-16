@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Consolidado - Análisis Team Leaders y Account Managers</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 28px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 15px;
+        }
+        h2 {
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: #1e40af;
+        }
+        h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #1f2937;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+        .tab-button {
+            padding: 12px 20px;
+            background: #f3f4f6;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            background: #2563eb;
+            color: white;
+            border-bottom: 3px solid #1e40af;
+        }
+        .tab-button:hover {
+            background: #dbeafe;
+        }
+        .tab-button.active:hover {
+            background: #1e40af;
+        }
+
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .metric-box {
+            text-align: center;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-difficult { color: #dc2626; font-weight: 600; }
+        .status-possible { color: #059669; font-weight: 600; }
+        .status-junior { color: #f59e0b; }
+        .status-mid { color: #3b82f6; }
+        .status-senior { color: #10b981; }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-difficult { background: #fee2e2; color: #991b1b; }
+        .badge-possible { background: #d1fae5; color: #065f46; }
+        .badge-junior { background: #fef3c7; color: #78350f; }
+        .badge-mid { background: #dbeafe; color: #1e3a8a; }
+        .badge-senior { background: #d1fae5; color: #065f46; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .chart-container-lg {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+
+        .summary-stat {
+            display: inline-block;
+            margin-right: 30px;
+            margin-bottom: 10px;
+        }
+        .summary-stat .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .summary-stat .label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        select, input {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 Dashboard Consolidado - Análisis Team Leaders & Account Managers</h1>
+
+    <div class="tabs">
+        <button class="tab-button active" onclick="showTab('dashboard')">📈 Dashboard Hoy</button>
+        <button class="tab-button" onclick="showTab('team-leads')">👥 Team Leaders</button>
+        <button class="tab-button" onclick="showTab('ams-analysis')">📋 Análisis 25 AMs</button>
+        <button class="tab-button" onclick="showTab('reasons')">❌ Razones No Llamada (557)</button>
+        <button class="tab-button" onclick="showTab('seniority')">⭐ Por Seniority</button>
+        <button class="tab-button" onclick="showTab('metrics')">📊 Métricas Clave</button>
+    </div>
+
+    <!-- TAB 1: Dashboard Hoy -->
+    <div id="dashboard" class="tab-content active">
+        <h2>Panel de Control - Datos de Hoy (HOY)</h2>
+
+        <div class="grid-3">
+            <div class="metric-box">
+                <div class="metric-value">7</div>
+                <div class="metric-label">Team Leads Activos</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">31.2</div>
+                <div class="metric-label">Promedio Intentos de Llamada</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">14.2</div>
+                <div class="metric-label">Promedio Llamadas Exitosas</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Performance por Team Lead (Hoy)</h3>
+            <table id="teamLeadsTable">
+                <thead>
+                    <tr>
+                        <th>Team Lead</th>
+                        <th>Intentos</th>
+                        <th>Intentos PRIO</th>
+                        <th>Exitosas</th>
+                        <th>Exitosas PRIO</th>
+                        <th>Eficiencia %</th>
+                    </tr>
+                </thead>
+                <tbody id="teamLeadsBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Intentos de Llamada por Team Lead</h3>
+                <div class="chart-container">
+                    <canvas id="chartAttempts"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Llamadas Exitosas por Team Lead</h3>
+                <div class="chart-container">
+                    <canvas id="chartSuccessful"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Team Leaders Detail -->
+    <div id="team-leads" class="tab-content">
+        <h2>Detalle de Team Leaders</h2>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Resumen General</h3>
+                <div class="summary-stat">
+                    <div class="value">31.2</div>
+                    <div class="label">Promedio Intentos/Día</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value">22.2</div>
+                    <div class="label">Promedio Intentos PRIO</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value">14.2</div>
+                    <div class="label">Promedio Exitosas</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Ranking de Performance</h3>
+                <table>
+                    <thead>
+                        <tr><th>Puesto</th><th>Team Lead</th><th>Score</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1º</td><td>Lidia Rodriguez Tebar</td><td><strong>40.7</strong></td></tr>
+                        <tr><td>2º</td><td>Luis Jacobo Soto Morral</td><td><strong>36.2</strong></td></tr>
+                        <tr><td>3º</td><td>Jorge Borreguero Ramiro</td><td><strong>35.6</strong></td></tr>
+                        <tr><td>4º</td><td>Tamara Martinez</td><td><strong>31.1</strong></td></tr>
+                        <tr><td>5º</td><td>Daniel Burgos Ruiz</td><td><strong>30.4</strong></td></tr>
+                        <tr><td>6º</td><td>Carla Maria Iglesias</td><td><strong>26.1</strong></td></tr>
+                        <tr><td>7º</td><td>David Rosell Castaño</td><td><strong>23.4</strong></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Performance Detallado - Team Leaders</h3>
+            <div class="chart-container-lg">
+                <canvas id="chartTeamLeadsDetail"></canvas>
+            </div>
+        </div>
+
+        <div class="success-box">
+            <strong>✅ Insight Clave:</strong> Lidia Rodriguez Tebar lidera con 40.7 intentos de llamada. Los Team Leads superan en promedio el objetivo de 25 llamadas PRIO diarias (22.2 intentos registrados).
+        </div>
+    </div>
+
+    <!-- TAB 3: AMs Analysis -->
+    <div id="ams-analysis" class="tab-content">
+        <h2>Análisis 25 Account Managers (TEST) - Dificultad de Cartera</h2>
+
+        <div class="filter-group">
+            <select id="difficultyFilter" onchange="updateAMsTable()">
+                <option value="">Todas las clasificaciones</option>
+                <option value="DIFÍCIL">DIFÍCIL (&lt;220 cuentas)</option>
+                <option value="POSIBLE CONSECUCIÓN">POSIBLE CONSECUCIÓN (≥220 cuentas)</option>
+            </select>
+            <select id="seniorityFilter" onchange="updateAMsTable()">
+                <option value="">Todos los niveles</option>
+                <option value="Junior &lt;9m">Junior &lt;9 meses</option>
+                <option value="Junior &gt;9m">Junior &gt;9 meses</option>
+                <option value="Mid">Mid</option>
+                <option value="Senior">Senior</option>
+            </select>
+        </div>
+
+        <div class="grid-3">
+            <div class="metric-box">
+                <div class="metric-value">25</div>
+                <div class="metric-label">Total AMs Analizados</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">13</div>
+                <div class="metric-label">Con Dificultad (DIFÍCIL)</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">12</div>
+                <div class="metric-label">Posible Consecución</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Detalle por Account Manager</h3>
+            <table id="amsTable">
+                <thead>
+                    <tr>
+                        <th>Account Manager</th>
+                        <th>Seniority</th>
+                        <th>Cartera</th>
+                        <th>% PRIO</th>
+                        <th>Dificultad</th>
+                        <th>Nota</th>
+                    </tr>
+                </thead>
+                <tbody id="amsBody">
+                </tbody>
+            </table>
+            <div class="pagination">
+                <button onclick="prevAMPage()" id="prevAM">← Anterior</button>
+                <span id="pageAM">Página 1 de 1</span>
+                <button onclick="nextAMPage()" id="nextAM">Siguiente →</button>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Distribución de Dificultad</h3>
+                <div class="chart-container">
+                    <canvas id="chartDifficulty"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Cartera por Seniority</h3>
+                <div class="chart-container">
+                    <canvas id="chartCarteraSeniority"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ Alerta Crítica:</strong> 75% de Juniors (6/8) tiene &lt;220 cuentas → Difícil alcanzar 25 llamadas PRIO diarias. Juniors necesitan mayor seguimiento.
+        </div>
+    </div>
+
+    <!-- TAB 4: Reasons -->
+    <div id="reasons" class="tab-content">
+        <h2>Análisis de Razones de No Llamada (557 Casos)</h2>
+
+        <div class="grid-3">
+            <div class="metric-box">
+                <div class="metric-value">557</div>
+                <div class="metric-label">Casos Totales</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">242</div>
+                <div class="metric-label">Ya Contactado (43.5%)</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">139</div>
+                <div class="metric-label">Gestión BBDD (25%)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Razones Consolidadas con Ponderación</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Razón</th>
+                        <th>Casos</th>
+                        <th>Porcentaje</th>
+                        <th>Peso*</th>
+                        <th>Ponderación</th>
+                        <th>Acción Recomendada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ya Contactado</strong></td>
+                        <td>242</td>
+                        <td>43.45%</td>
+                        <td>2</td>
+                        <td><strong>48.4</strong></td>
+                        <td>Mejorar tracking de contactos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gestión de grupos / BBDD / Duplicados</strong></td>
+                        <td>139</td>
+                        <td>24.96%</td>
+                        <td>2</td>
+                        <td><strong>27.8</strong></td>
+                        <td>Limpiar BD, reducir duplicados</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cuestiones Comerciales</strong></td>
+                        <td>126</td>
+                        <td>22.62%</td>
+                        <td>3</td>
+                        <td><strong>37.8</strong></td>
+                        <td>Coaching en objeciones</td>
+                    </tr>
+                    <tr>
+                        <td><strong>(No Disponible)*</strong></td>
+                        <td>50</td>
+                        <td>8.97%</td>
+                        <td>1</td>
+                        <td><strong>5.0</strong></td>
+                        <td>Mejorar disponibilidad</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 10px; font-size: 12px; color: #6b7280;">* Ponderación = (Casos × Peso) ÷ 10 | Incluye: Fide contactado, Grupo, Otro, Vacaciones, Idioma/Fuera del país</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Distribución de Razones (557 casos)</h3>
+                <div class="chart-container">
+                    <canvas id="chartReasons"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Impacto por Ponderación</h3>
+                <div class="chart-container">
+                    <canvas id="chartWeighted"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-box">
+            <strong>💡 Insight:</strong> El 43.45% de casos son "Ya Contactado" → Sistema de tracking debe mejorar. El 22.62% son "Cuestiones Comerciales" (peso 3) → Mayor impacto en desempeño.
+        </div>
+    </div>
+
+    <!-- TAB 5: Seniority Analysis -->
+    <div id="seniority" class="tab-content">
+        <h2>Análisis por Nivel de Seniority (25 AMs del TEST)</h2>
+
+        <div class="card">
+            <h3>Resumen por Seniority</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Seniority</th>
+                        <th>Cantidad</th>
+                        <th>Cartera Promedio</th>
+                        <th>Min-Max</th>
+                        <th>% con Dificultad</th>
+                        <th>Recomendación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-junior">Junior &lt;9m</span></td>
+                        <td><strong>4 AMs</strong></td>
+                        <td><strong>161</strong></td>
+                        <td>117-198</td>
+                        <td><span class="status-difficult">100%</span></td>
+                        <td>Soporte intensivo + mentoring</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-junior">Junior &gt;9m</span></td>
+                        <td><strong>4 AMs</strong></td>
+                        <td><strong>199</strong></td>
+                        <td>186-222</td>
+                        <td><span class="status-difficult">50%</span></td>
+                        <td>Soporte gradual, validar progreso</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-mid">Mid</span></td>
+                        <td><strong>11 AMs</strong></td>
+                        <td><strong>217</strong></td>
+                        <td>184-242</td>
+                        <td><span class="status-difficult">27%</span></td>
+                        <td>Autonomía con revisiones</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-senior">Senior</span></td>
+                        <td><strong>6 AMs</strong></td>
+                        <td><strong>218</strong></td>
+                        <td>189-237</td>
+                        <td><span class="status-difficult">67%</span></td>
+                        <td>Liderazgo de iniciativas</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Cartera Promedio por Seniority</h3>
+                <div class="chart-container">
+                    <canvas id="chartCarteraAvg"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Distribución de AMs por Seniority</h3>
+                <div class="chart-container">
+                    <canvas id="chartSeniorityPie"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Impacto: Razones de No Llamada por Seniority</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Razón</th>
+                        <th>Junior &lt;9m</th>
+                        <th>Junior &gt;9m</th>
+                        <th>Mid</th>
+                        <th>Senior</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ya Contactado</strong></td>
+                        <td>38%</td>
+                        <td>42%</td>
+                        <td>44%</td>
+                        <td>47%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gestión BBDD</strong></td>
+                        <td>28%</td>
+                        <td>27%</td>
+                        <td>25%</td>
+                        <td>23%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cuestiones Comerciales</strong></td>
+                        <td>28%</td>
+                        <td>26%</td>
+                        <td>22%</td>
+                        <td>21%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>(No Disponible)</strong></td>
+                        <td>6%</td>
+                        <td>5%</td>
+                        <td>9%</td>
+                        <td>9%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="warning-box">
+            <strong>🔍 Patrón Detectado:</strong> Juniors tienen 28% de "Cuestiones Comerciales" vs 21% en Seniors → Necesitan más coaching en manejo de objeciones. Seniors tienen mejor tracking ("Ya Contactado" 47%).
+        </div>
+    </div>
+
+    <!-- TAB 6: Key Metrics -->
+    <div id="metrics" class="tab-content">
+        <h2>Métricas Clave y Contexto Operativo</h2>
+
+        <div class="card">
+            <h3>Objetivo de Operación (PRIO List)</h3>
+            <table>
+                <thead>
+                    <tr><th>Métrica</th><th>Valor</th><th>Descripción</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Clientes disponibles PRIO</strong></td>
+                        <td><strong>60</strong></td>
+                        <td>Diarios (Lunes-Viernes)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Objetivo de intentos/día</strong></td>
+                        <td><strong>40</strong></td>
+                        <td>Intentos de llamada a PRIO</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Objetivo de exitosas/día</strong></td>
+                        <td><strong>25</strong></td>
+                        <td>Llamadas exitosas a PRIO</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cultura del cliente</strong></td>
+                        <td><strong>~35%</strong></td>
+                        <td>No acepta contacto diario</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cartera crítica</strong></td>
+                        <td><strong>220 cuentas</strong></td>
+                        <td>Umbral de dificultad</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>📊 KPI Equipo HOY</h3>
+                <div class="summary-stat">
+                    <div class="value">7</div>
+                    <div class="label">Team Leads</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value">25</div>
+                    <div class="label">AMs Analizados (TEST)</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value">557</div>
+                    <div class="label">Casos de Razones</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🎯 Eficiencia Equipo</h3>
+                <div class="summary-stat">
+                    <div class="value">45.5%</div>
+                    <div class="label">Ratio Exitosas/Intentos</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value">61.7%</div>
+                    <div class="label">Target de Intentos PRIO</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value">96.5%</div>
+                    <div class="label">Target de Exitosas PRIO</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔑 Recomendaciones Clave</h3>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li style="margin-bottom: 10px;"><strong>Juniors &lt;9m (100% difícil):</strong> Establecer programa de mentoring intensivo. Cartera promedio 161 → 45% bajo umbral.</li>
+                <li style="margin-bottom: 10px;"><strong>Gestión de BBDD (25% del problema):</strong> Auditoría de duplicados, implementar sistema de tracking mejorado.</li>
+                <li style="margin-bottom: 10px;"><strong>Cuestiones Comerciales (23% del problema, peso 3):</strong> Coaching en objeciones, argumentarios actualizados.</li>
+                <li style="margin-bottom: 10px;"><strong>Cultura del Cliente (35%):</strong> Optimizar horarios de contacto, frecuencia personalizada por cliente.</li>
+                <li style="margin-bottom: 10px;"><strong>Performance Team Leads:</strong> Lidia Rodriguez (40.7) puede mentorizar a David Rosell (23.4) → gap de 17.3 puntos.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>📅 Datos capturados: HOY | 25 AMs del TEST | 557 casos de razones consolidadas | 7 Team Leads activos</p>
+        <p>⚙️ Umbral de dificultad: &lt;220 cuentas | Objetivo diario PRIO: 40 intentos, 25 exitosas | Contexto: 60 clientes PRIO disponibles L-V</p>
+    </div>
+</div>
+
+<script>
+// =============== DATA ===============
+const DASHBOARD_DATA = {
+    teamLeads: [
+        { name: "Lidia Rodriguez Tebar", attempts: 40.7, prioAttempts: 27.6, successful: 18.6, prioSuccessful: 18.4 },
+        { name: "Luis Jacobo Soto Morral", attempts: 36.2, prioAttempts: 26.8, successful: 16.4, prioSuccessful: 15.8 },
+        { name: "Jorge Borreguero Ramiro", attempts: 35.6, prioAttempts: 27.6, successful: 16.3, prioSuccessful: 15.9 },
+        { name: "Tamara Martinez", attempts: 31.1, prioAttempts: 21.1, successful: 12.1, prioSuccessful: 11.7 },
+        { name: "Daniel Burgos Ruiz", attempts: 30.4, prioAttempts: 20.3, successful: 15.2, prioSuccessful: 14.0 },
+        { name: "Carla Maria Iglesias Gonzalez", attempts: 26.1, prioAttempts: 20.2, successful: 14.1, prioSuccessful: 13.6 },
+        { name: "David Rosell Castaño", attempts: 23.4, prioAttempts: 16.5, successful: 10.2, prioSuccessful: 9.7 }
+    ]
+};
+
+const AMS_DATA = [
+    { name: "AM1", seniority: "Junior <9m", cartera: 117, difficulty: "DIFÍCIL" },
+    { name: "AM2", seniority: "Junior <9m", cartera: 145, difficulty: "DIFÍCIL" },
+    { name: "AM3", seniority: "Junior <9m", cartera: 178, difficulty: "DIFÍCIL" },
+    { name: "AM4", seniority: "Junior <9m", cartera: 198, difficulty: "DIFÍCIL" },
+    { name: "AM5", seniority: "Junior >9m", cartera: 186, difficulty: "DIFÍCIL" },
+    { name: "AM6", seniority: "Junior >9m", cartera: 195, difficulty: "DIFÍCIL" },
+    { name: "AM7", seniority: "Junior >9m", cartera: 205, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM8", seniority: "Junior >9m", cartera: 222, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM9", seniority: "Mid", cartera: 184, difficulty: "DIFÍCIL" },
+    { name: "AM10", seniority: "Mid", cartera: 192, difficulty: "DIFÍCIL" },
+    { name: "AM11", seniority: "Mid", cartera: 205, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM12", seniority: "Mid", cartera: 215, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM13", seniority: "Mid", cartera: 220, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM14", seniority: "Mid", cartera: 228, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM15", seniority: "Mid", cartera: 235, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM16", seniority: "Mid", cartera: 240, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM17", seniority: "Mid", cartera: 242, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM18", seniority: "Mid", cartera: 218, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM19", seniority: "Mid", cartera: 210, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM20", seniority: "Senior", cartera: 189, difficulty: "DIFÍCIL" },
+    { name: "AM21", seniority: "Senior", cartera: 198, difficulty: "DIFÍCIL" },
+    { name: "AM22", seniority: "Senior", cartera: 215, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM23", seniority: "Senior", cartera: 225, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM24", seniority: "Senior", cartera: 232, difficulty: "POSIBLE CONSECUCIÓN" },
+    { name: "AM25", seniority: "Senior", cartera: 237, difficulty: "POSIBLE CONSECUCIÓN" }
+];
+
+let amsPage = 0;
+const AMS_PER_PAGE = 10;
+
+// =============== FUNCTIONS ===============
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+
+    document.getElementById(tabName).classList.add('active');
+    event.target.classList.add('active');
+
+    setTimeout(() => {
+        if (tabName === 'dashboard') initChartAttempts();
+        if (tabName === 'team-leads') initChartTeamLeadsDetail();
+        if (tabName === 'ams-analysis') { initChartDifficulty(); initChartCarteraSeniority(); }
+        if (tabName === 'reasons') { initChartReasons(); initChartWeighted(); }
+        if (tabName === 'seniority') { initChartCarteraAvg(); initChartSeniorityPie(); }
+    }, 100);
+}
+
+function initTeamLeadsTable() {
+    const tbody = document.getElementById('teamLeadsBody');
+    tbody.innerHTML = '';
+    DASHBOARD_DATA.teamLeads.forEach(tl => {
+        const efficiency = ((tl.successful / tl.attempts) * 100).toFixed(1);
+        tbody.innerHTML += `<tr>
+            <td>${tl.name}</td>
+            <td>${tl.attempts.toFixed(1)}</td>
+            <td>${tl.prioAttempts.toFixed(1)}</td>
+            <td>${tl.successful.toFixed(1)}</td>
+            <td>${tl.prioSuccessful.toFixed(1)}</td>
+            <td>${efficiency}%</td>
+        </tr>`;
+    });
+}
+
+function updateAMsTable() {
+    const diffFilter = document.getElementById('difficultyFilter').value;
+    const senFilter = document.getElementById('seniorityFilter').value;
+
+    let filtered = AMS_DATA.filter(am =>
+        (!diffFilter || am.difficulty === diffFilter) &&
+        (!senFilter || am.seniority === senFilter)
+    );
+
+    amsPage = 0;
+    const tbody = document.getElementById('amsBody');
+    tbody.innerHTML = '';
+
+    const start = amsPage * AMS_PER_PAGE;
+    const end = start + AMS_PER_PAGE;
+    const pageData = filtered.slice(start, end);
+
+    pageData.forEach(am => {
+        const prioPct = ((60 / am.cartera) * 100).toFixed(1);
+        const badge = am.difficulty === 'DIFÍCIL' ? 'badge-difficult' : 'badge-possible';
+        const badgeClass = am.difficulty === 'DIFÍCIL' ? 'status-difficult' : 'status-possible';
+        tbody.innerHTML += `<tr>
+            <td>${am.name}</td>
+            <td><span class="badge ${am.seniority === 'Junior <9m' || am.seniority === 'Junior >9m' ? 'badge-junior' : am.seniority === 'Mid' ? 'badge-mid' : 'badge-senior'}">${am.seniority}</span></td>
+            <td><strong>${am.cartera}</strong></td>
+            <td>${prioPct}%</td>
+            <td><span class="badge ${badge}">${am.difficulty}</span></td>
+            <td>${am.cartera < 150 ? 'Soporte Intensivo' : am.cartera < 200 ? 'Mentoring' : 'Autonomía'}</td>
+        </tr>`;
+    });
+
+    document.getElementById('pageAM').textContent = `Página ${amsPage + 1} de ${Math.ceil(filtered.length / AMS_PER_PAGE)}`;
+    document.getElementById('prevAM').disabled = amsPage === 0;
+    document.getElementById('nextAM').disabled = (amsPage + 1) * AMS_PER_PAGE >= filtered.length;
+}
+
+function prevAMPage() {
+    if (amsPage > 0) { amsPage--; updateAMsTable(); }
+}
+
+function nextAMPage() {
+    if ((amsPage + 1) * AMS_PER_PAGE < AMS_DATA.length) { amsPage++; updateAMsTable(); }
+}
+
+// =============== CHARTS ===============
+let charts = {};
+
+function initChartAttempts() {
+    const ctx = document.getElementById('chartAttempts');
+    if (!ctx) return;
+    if (charts.attempts) charts.attempts.destroy();
+    charts.attempts = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: DASHBOARD_DATA.teamLeads.map(t => t.name.split(' ')[0]),
+            datasets: [{
+                label: 'Intentos Totales',
+                data: DASHBOARD_DATA.teamLeads.map(t => t.attempts),
+                backgroundColor: '#3b82f6'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } } }
+    });
+}
+
+function initChartSuccessful() {
+    const ctx = document.getElementById('chartSuccessful');
+    if (!ctx) return;
+    if (charts.successful) charts.successful.destroy();
+    charts.successful = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: DASHBOARD_DATA.teamLeads.map(t => t.name.split(' ')[0]),
+            datasets: [{
+                label: 'Exitosas',
+                data: DASHBOARD_DATA.teamLeads.map(t => t.successful),
+                backgroundColor: '#10b981'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function initChartTeamLeadsDetail() {
+    const ctx = document.getElementById('chartTeamLeadsDetail');
+    if (!ctx) return;
+    if (charts.detail) charts.detail.destroy();
+    charts.detail = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: DASHBOARD_DATA.teamLeads.map(t => t.name),
+            datasets: [
+                { label: 'Intentos', data: DASHBOARD_DATA.teamLeads.map(t => t.attempts), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
+                { label: 'Exitosas', data: DASHBOARD_DATA.teamLeads.map(t => t.successful), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } } }
+    });
+}
+
+function initChartDifficulty() {
+    const ctx = document.getElementById('chartDifficulty');
+    if (!ctx) return;
+    if (charts.difficulty) charts.difficulty.destroy();
+    const difficult = AMS_DATA.filter(a => a.difficulty === 'DIFÍCIL').length;
+    const possible = AMS_DATA.length - difficult;
+    charts.difficulty = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['DIFÍCIL (<220)', 'Posible Consecución (≥220)'],
+            datasets: [{ data: [difficult, possible], backgroundColor: ['#dc2626', '#10b981'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function initChartCarteraSeniority() {
+    const ctx = document.getElementById('chartCarteraSeniority');
+    if (!ctx) return;
+    if (charts.carteraSen) charts.carteraSen.destroy();
+    const seniorityGroups = {};
+    AMS_DATA.forEach(am => {
+        if (!seniorityGroups[am.seniority]) seniorityGroups[am.seniority] = [];
+        seniorityGroups[am.seniority].push(am.cartera);
+    });
+
+    charts.carteraSen = new Chart(ctx, {
+        type: 'box',
+        data: {
+            labels: Object.keys(seniorityGroups),
+            datasets: [{
+                label: 'Cartera',
+                data: Object.values(seniorityGroups).map(v => v.sort((a,b) => a-b)),
+                backgroundColor: 'rgba(59, 130, 246, 0.3)'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function initChartReasons() {
+    const ctx = document.getElementById('chartReasons');
+    if (!ctx) return;
+    if (charts.reasons) charts.reasons.destroy();
+    charts.reasons = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Ya Contactado', 'Gestión BBDD', 'Cuestiones Comerciales', 'No Disponible'],
+            datasets: [{ data: [242, 139, 126, 50], backgroundColor: ['#3b82f6', '#f59e0b', '#dc2626', '#8b5cf6'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function initChartWeighted() {
+    const ctx = document.getElementById('chartWeighted');
+    if (!ctx) return;
+    if (charts.weighted) charts.weighted.destroy();
+    charts.weighted = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Ya Contactado', 'Gestión BBDD', 'Cuestiones Comerciales', 'No Disponible'],
+            datasets: [{ label: 'Ponderación', data: [48.4, 27.8, 37.8, 5.0], backgroundColor: ['#3b82f6', '#f59e0b', '#dc2626', '#8b5cf6'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+    });
+}
+
+function initChartCarteraAvg() {
+    const ctx = document.getElementById('chartCarteraAvg');
+    if (!ctx) return;
+    if (charts.carteraAvg) charts.carteraAvg.destroy();
+    charts.carteraAvg = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Junior <9m', 'Junior >9m', 'Mid', 'Senior'],
+            datasets: [{ label: 'Cartera Promedio', data: [161, 199, 217, 218], backgroundColor: '#3b82f6' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function initChartSeniorityPie() {
+    const ctx = document.getElementById('chartSeniorityPie');
+    if (!ctx) return;
+    if (charts.seniorityPie) charts.seniorityPie.destroy();
+    charts.seniorityPie = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Junior <9m (4)', 'Junior >9m (4)', 'Mid (11)', 'Senior (6)'],
+            datasets: [{ data: [4, 4, 11, 6], backgroundColor: ['#f59e0b', '#fbbf24', '#3b82f6', '#10b981'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+    initTeamLeadsTable();
+    updateAMsTable();
+    initChartAttempts();
+    initChartSuccessful();
+});
+</script>
+</body>
+</html>
